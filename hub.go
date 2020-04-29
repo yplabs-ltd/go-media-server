@@ -82,3 +82,7 @@ func createNeedOffer() []byte {
 	}
 	return jsonString
 }
+
+func createAnswer() string {
+	return "test"
+}
