@@ -103,7 +103,7 @@ func (c *Client) readPump() {
 		if objmap["type"] == "requestOffer" {
 			data := RequestOfferReceive {
 				client: c,
-				offer: message,
+				sdp: objmap["sdp"],
 			}
 			c.hub.requestOffer <- &data
 		} else {

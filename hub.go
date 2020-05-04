@@ -29,7 +29,7 @@ type Hub struct {
 
 type RequestOfferReceive struct {
 	client *Client
-	offer []byte
+	sdp []byte
 }
 
 func newHub() *Hub {
