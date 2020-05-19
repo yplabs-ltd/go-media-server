@@ -4,7 +4,7 @@ package main
 import (
 	"encoding/json"
 	"flag"
-	"fmt"
+	"github.com/pion/webrtc"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -50,6 +50,19 @@ func getUserInformation(token string) User {
 	}
 }
 
+func init() {
+
+	// Create a MediaEngine object to configure the supported codec
+	mediaEngine = webrtc.MediaEngine{}
+
+	// Setup the codecs you want to use.
+	mediaEngine.RegisterCodec(webrtc.NewRTPVP8Codec(webrtc.DefaultPayloadTypeVP8, 90000))
+	mediaEngine.RegisterCodec(webrtc.NewRTPOpusCodec(webrtc.DefaultPayloadTypeOpus, 48000))
+
+	// Create the API object with the MediaEngine
+	api = webrtc.NewAPI(webrtc.WithMediaEngine(mediaEngine))
+}
+
 func main() {
 	flag.Parse()
 	hub := newHub()
@@ -57,15 +70,23 @@ func main() {
 
 	http.HandleFunc("/", serveHome)
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Printf("HI")
 		token := r.URL.Query().Get("token")
 		room := r.URL.Query().Get("room")
 
 		user := getUserInformation(token)
+
 		serveWs(hub, user, room, w, r)
 	})
+	//err := http.ListenAndServe(*addr, nil)
+	//err := http.ListenAndServeTLS(*addr, "cert.pem", "key.pem", nil)
 	err := http.ListenAndServe(*addr, nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
+	}
+}
+
+func checkError(err error) {
+	if err != nil {
+		panic(err)
 	}
 }

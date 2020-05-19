@@ -5,9 +5,10 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/gorilla/websocket"
+	"github.com/pion/webrtc"
 	"log"
 	"net/http"
 	"time"
@@ -24,7 +25,7 @@ const (
 	pingPeriod = (pongWait * 9) / 10
 
 	// Maximum message size allowed from peer.
-	maxMessageSize = 512
+	maxMessageSize = 2048
 )
 
 var (
@@ -53,6 +54,11 @@ type Client struct {
 	// The websocket connection.
 	conn *websocket.Conn
 
+	rtcConnection *webrtc.PeerConnection
+	sendTrack *webrtc.Track
+	recvTrack *webrtc.Track
+	remoteTrack *webrtc.Track
+
 	// Buffered channel of outbound messages.
 	send chan []byte
 }
@@ -80,32 +86,46 @@ func (c *Client) readPump() {
 	for {
 		_, message, err := c.conn.ReadMessage()
 		if err != nil {
+			fmt.Print(err)
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("error: %v", err)
 			}
 			break
 		}
-		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-		// var response Response
-		// json.Unmarshal(message, &response)
-		// fmt.Printf("%T\n", message)
-		// fmt.Println(string(message))
-		// bytes := []byte(message)
-		// var languages Response
-		// fmt.Println("COME")
-		// fmt.Println(bytes)
-		// json.Unmarshal(bytes, &languages)
-		// fmt.Println(languages)
+		//		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
+		//fmt.Printf("fdfdfd \n dfsfds \n")
+
+		//fmt.Printf("=======")
+		//fmt.Print([]byte("\r \n"))
+		//fmt.Print(message)
 
 		var objmap map[string]interface{} 
 		json.Unmarshal(message, &objmap)
 
+
+		//fmt.Print("AAAAAAAAAA")
+		//fmt.Print([]byte("hello   \n"))
+		//fmt.Printf("TYPE IS %T\n", objmap["sdp"])
+
+		//fmt.Print(objmap["sdp"])
+		//fmt.Print([]byte(objmap["sdp"].(string)))
+		//fmt.Printf(objmap["sdp"].(string))
+
+
+		//fmt.Print(objmap)
+
 		if objmap["type"] == "requestOffer" {
-			data := RequestOfferReceive {
+			data := RequestOffer {
 				client: c,
-				sdp: objmap["sdp"],
+				sdp: objmap["sdp"].(string),
 			}
 			c.hub.requestOffer <- &data
+		} else if objmap["type"] == "requestCandidate" {
+			data := RequestCandidate {
+				client: c,
+				candidate: objmap["candidate"].(string),
+			}
+			c.hub.requestCandidate <- &data
 		} else {
 			c.hub.broadcast <- message
 		}
